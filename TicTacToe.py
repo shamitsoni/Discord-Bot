@@ -5,9 +5,11 @@ import discord
 # Class that handles the logic of the game
 class TicTacToeGame:
     # Constructor to initialize the game
-    def __init__(self):
+    # PARAM: playing_computer: Determines whether the player is playing against the computer
+    def __init__(self, playing_computer: bool):
         self.board = [[' ' for _ in range(3)] for _ in range(3)]
         self.current_player = 'X'
+        self.playing_computer = playing_computer
         self.winner = None
 
     # Method to switch the player
@@ -16,6 +18,13 @@ class TicTacToeGame:
             self.current_player = 'O'
         else:
             self.current_player = 'X'
+
+    def computer(self):
+        for x in range(3):
+            for y in range(3):
+                if self.board[x][y] == ' ':
+                    self.board[x][y] = self.current_player
+                    return x, y
 
     # Checks all possible win conditions
     def check_winner(self):
@@ -53,8 +62,8 @@ class TicTacToeGame:
         self.winner = None
 
 
-# Instance of the Tic-Tac-Toe game to be passed to the button
-game = TicTacToeGame()
+# Instance of the Tic-Tac-Toe game to be passed to the button, computer is not playing by default
+game = TicTacToeGame(playing_computer=False)
 
 
 # Class that represents a button on the board
@@ -68,8 +77,8 @@ class TicTacToeButton(Button):
     # Method to handle the button clicks
     async def callback(self, interaction):
         # If the space is empty, place the current player's label
-        if game.board[self.y][self.x] == ' ':
-            game.board[self.y][self.x] = game.current_player
+        if game.board[self.x][self.y] == ' ':
+            game.board[self.x][self.y] = game.current_player
             self.label = game.current_player
             self.disabled = True
 
@@ -79,23 +88,54 @@ class TicTacToeButton(Button):
                     child.disabled = True
                 await interaction.response.edit_message(content=f'Winner: {game.current_player}!', view=self.view)
                 game.reset()
+                return
             # If there is a tie: Set game board to read only, print the tie, and reset the game
             elif game.check_tie():
                 for child in self.view.children:
                     child.disabled = True
                 await interaction.response.edit_message(content='It\'s a tie!', view=self.view)
                 game.reset()
-            # Otherwise, switch the player and continue the game as normal
+                return
+            # Otherwise, switch the player and continue the game
             else:
                 game.switch_player()
+
+                # If the computer is playing, make a move
+                if game.playing_computer and game.current_player == 'O':
+                    x, y = game.computer()
+                    for child in self.view.children:
+                        if child.x == x and child.y == y:
+                            child.label = game.current_player
+                            child.disabled = True
+                    # If the computer won: reset all conditions and print the winner
+                    if game.check_winner():
+                        for child in self.view.children:
+                            child.disabled = True
+                        await interaction.response.edit_message(content=f'Winner: {game.current_player}!', view=self.view)
+                        game.reset()
+                        return
+                    # If there is a tie: reset all conditions and print the tie
+                    elif game.check_tie():
+                        for child in self.view.children:
+                            child.disabled = True
+                        await interaction.response.edit_message(content='It\'s a tie!', view=self.view)
+                        game.reset()
+                        return
+                    # Otherwise, switch the player and continue the game
+                    else:
+                        game.switch_player()
                 await interaction.response.edit_message(view=self.view)
 
 
 # Class that represents the board for the game
 class TicTacToeView(View):
     # Constructor to initialize the game board
-    def __init__(self):
+    # PARAM: playing_computer: Passed as a string by the user to determine if the player is playing against the computer
+    def __init__(self, playing_computer: bool):
         super().__init__()
+        # Access the game instance and modify the playing_computer attribute depending on the user input
+        global game
+        game = TicTacToeGame(playing_computer=playing_computer)
         self.add_item(TicTacToeButton(0, 0))
         self.add_item(TicTacToeButton(1, 0))
         self.add_item(TicTacToeButton(2, 0))

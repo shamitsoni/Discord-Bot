@@ -41,13 +41,15 @@ async def roll_dice(interaction):
 
 
 @tree.command(name="randnum", description="Generate a random number")
+@app_commands.describe(minimum="Minimum Value", maximum="Maximum Value")
 async def random_number(interaction, minimum: int, maximum: int):
     await interaction.response.send_message(f'Number: {randint(minimum, maximum)}')
 
 
 @tree.command(name="tictactoe", description="Play Tic Tac Toe")
-async def tic_tac_toe(interaction):
-    view = TicTacToeView()
+@app_commands.describe(mode="Enter 'cpu' to play against the computer")
+async def tic_tac_toe(interaction, mode: str = 'player'):
+    view = TicTacToeView(playing_computer=(mode.lower() == 'cpu'))
     await interaction.response.send_message("Tic Tac Toe: X starts", view=view)
 
 
