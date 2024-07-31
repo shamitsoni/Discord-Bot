@@ -10,7 +10,7 @@ def retrieve_questions(directory: str) -> list:
     return questions
 
 
-def get_question(questions: list) -> dict:
+def pick_question(questions: list) -> dict:
     global used_questions
     unique_questions = [q for q in questions if q['question'] not in used_questions]
     if not unique_questions:

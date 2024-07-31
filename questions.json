@@ -145,5 +145,8 @@
     {"question": "What is the largest island in the Caribbean?", "answer": "Cuba"},
     {"question": "What is the chemical symbol for antimony?", "answer": "Sb"},
     {"question": "What is the capital of Micronesia?", "answer": "Palikir"},
-    {"question": "What is the largest island in the Indian Ocean?", "answer": "Madagascar"}
+    {"question": "What is the largest island in the Indian Ocean?", "answer": "Madagascar"},
+    {"question": "What is the chemical symbol for uranium?", "answer": "U"},
+    {"question": "What is the largest island in the Pacific Ocean?", "answer": "New Guinea"},
+    {"question": "What is the chemical symbol for gold?", "answer": "Au"}
 ]
