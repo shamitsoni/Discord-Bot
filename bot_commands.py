@@ -113,7 +113,6 @@ async def mute(interaction, member: discord.Member, duration: int = 60, reason: 
         if mute_role is None:
             await interaction.response.send_message("Role not found. Please create a role named 'Muted'.", ephemeral=True)
             return
-
         try:
             await member.add_roles(mute_role, reason=reason)
             await interaction.response.send_message(f'User {member.mention} has been muted for {duration} minutes.')
@@ -122,7 +121,6 @@ async def mute(interaction, member: discord.Member, duration: int = 60, reason: 
             await interaction.followup.send(f'User {member.mention} has been unmuted.')
         except discord.Forbidden:
             await interaction.response.send_message('I do not have the necessary permissions. Please update the permissions.', ephemeral=True)
-            
     else:
         await interaction.response.send_message("You do not have permission to mute members.", ephemeral=True)
 
@@ -133,7 +131,11 @@ async def mute(interaction, member: discord.Member, duration: int = 60, reason: 
 async def unmute(interaction, member: discord.Member):
     if interaction.user.guild_permissions.manage_roles:
         mute_role = discord.utils.get(interaction.guild.roles, name='Muted')
-        await member.remove_roles(mute_role)
-        await interaction.response.send_message(f'User {member.mention} has been unmuted.')
+        is_muted = discord.utils.get(member.roles, name='Muted')
+        if is_muted:
+            await member.remove_roles(mute_role)
+            await interaction.response.send_message(f'User {member.mention} has been unmuted.')
+        else:
+            await interaction.response.send_message(f'Err... User {member.mention} is already unmuted.')
     else:
         await interaction.response.send_message("You do not have permission to unmute members.", ephemeral=True)
