@@ -10,7 +10,7 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 # Startup
 @client.event
 async def on_ready() -> None:
-    await tree.sync()  # Sync bot commands
+    await tree.sync(guild=discord.Object(id=1263604022745501829))  # Sync bot commands
     print(f'{client.user} is now running!')
 
 

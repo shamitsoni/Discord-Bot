@@ -1,3 +1,5 @@
+import asyncio
+import discord
 from random import randint
 from TicTacToe import TicTacToeView
 from discord import Intents, Client, app_commands
@@ -18,7 +20,7 @@ num_correct = 0
 game_active = False
 
 
-# Commands
+# Utility
 @tree.command(name="coinflip", description="Flip a coin")
 async def coin_flip(interaction):
     await interaction.response.send_message('Heads' if randint(0, 1) == 0 else 'Tails')
@@ -35,6 +37,7 @@ async def random_number(interaction, minimum: int, maximum: int):
     await interaction.response.send_message(f'Number: {randint(minimum, maximum)}')
 
 
+# Games
 @tree.command(name="tictactoe", description="Play Tic Tac Toe")
 @app_commands.describe(mode="Enter 'cpu' to play against the computer")
 async def tic_tac_toe(interaction, mode: str = 'player'):
@@ -77,3 +80,25 @@ async def on_message(message) -> None:
             questions = []
             current_question = 0
             game_active = False
+
+
+# Moderation Tools
+
+@tree.command(name="kick", description="Kick a user from the server")
+@app_commands.describe(member="The member to kick", reason="The reason for kicking the member")
+async def kick(interaction, member: discord.Member, reason: str = None):
+    if interaction.user.guild_permissions.kick_members:
+        await member.kick(reason=reason)
+        await interaction.response.send_message(f'User {member.mention} has been kicked.')
+    else:
+        await interaction.response.send_message("You do not have permission to kick members.", ephemeral=True)
+
+
+@tree.command(name="ban", description="Ban a user from the server")
+@app_commands.describe(member="The member to ban", reason="The reason for banning the member")
+async def ban(interaction, member: discord.Member, reason: str = None):
+    if interaction.user.guild_permissions.ban_members:
+        await member.ban(reason=reason)
+        await interaction.response.send_message(f'User {member.mention} has been banned.')
+    else:
+        await interaction.response.send_message("You do not have permission to ban members.", ephemeral=True)
