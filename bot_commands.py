@@ -102,3 +102,38 @@ async def ban(interaction, member: discord.Member, reason: str = None):
         await interaction.response.send_message(f'User {member.mention} has been banned.')
     else:
         await interaction.response.send_message("You do not have permission to ban members.", ephemeral=True)
+
+
+# Mute user for a time in minutes. Will automatically unmute after the duration.
+@tree.command(name="mute", description="Mute a user for a selected duration")
+@app_commands.describe(member="The member to mute", duration="Time to mute for (minutes).", reason="The reason for banning the member")
+async def mute(interaction, member: discord.Member, duration: int = 60, reason: str = None):
+    if interaction.user.guild_permissions.manage_roles:
+        mute_role = discord.utils.get(interaction.guild.roles, name='Muted')
+        if mute_role is None:
+            await interaction.response.send_message("Role not found. Please create a role named 'Muted'.", ephemeral=True)
+            return
+
+        try:
+            await member.add_roles(mute_role, reason=reason)
+            await interaction.response.send_message(f'User {member.mention} has been muted for {duration} minutes.')
+            await asyncio.sleep(duration * 60)
+            await member.remove_roles(mute_role)
+            await interaction.followup.send(f'User {member.mention} has been unmuted.')
+        except discord.Forbidden:
+            await interaction.response.send_message('I do not have the necessary permissions. Please update the permissions.', ephemeral=True)
+            
+    else:
+        await interaction.response.send_message("You do not have permission to mute members.", ephemeral=True)
+
+
+# Manually unmute a user by command
+@tree.command(name="unmute", description="Unmute a user")
+@app_commands.describe(member="The member to unmute")
+async def unmute(interaction, member: discord.Member):
+    if interaction.user.guild_permissions.manage_roles:
+        mute_role = discord.utils.get(interaction.guild.roles, name='Muted')
+        await member.remove_roles(mute_role)
+        await interaction.response.send_message(f'User {member.mention} has been unmuted.')
+    else:
+        await interaction.response.send_message("You do not have permission to unmute members.", ephemeral=True)
