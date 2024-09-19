@@ -1,10 +1,11 @@
 import asyncio
 import discord
 from random import randint
-from TicTacToe import TicTacToeView
 from discord import Intents, Client, app_commands
-from Trivia import retrieve_questions, pick_question, check_answer
-from Unscramble import pick_word, scramble
+from command.TicTacToe import TicTacToeView
+from command.Trivia import retrieve_questions, pick_question, check_answer
+from command.Unscramble import pick_word, scramble
+
 
 # Bot Setup
 intents = Intents.default()
@@ -13,7 +14,7 @@ client = Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
 # Game Variables
-questions_list = retrieve_questions('questions.json')
+questions_list = retrieve_questions('data/questions.json')
 questions = []
 current_question = 0
 total_questions = 0
@@ -24,7 +25,7 @@ scramble_active = False
 
 
 # Utility
-@tree.command(name="coinflip", description="Flip a coin!!!!!")
+@tree.command(name="coinflip", description="Flip a coin")
 async def coin_flip(interaction):
     await interaction.response.send_message('Heads' if randint(0, 1) == 0 else 'Tails')
 
@@ -66,10 +67,11 @@ async def unscramble(interaction):
     scramble_active = True
     await interaction.response.send_message(
         "Welcome to Unscramble the Word! Type !a <your answer> to answer the question or !q to quit.")
-    word = pick_word('words.txt')
+    word = pick_word('data/words.txt')
     await interaction.followup.send(f'Unscramble: {scramble(word)}')
 
 
+# Used to check user's answer for Trivia and Unscramble
 @client.event
 async def on_message(message) -> None:
     global current_question, questions, trivia_active, num_correct, scramble_active
@@ -111,7 +113,6 @@ async def on_message(message) -> None:
 
 
 # Moderation Tools
-
 @tree.command(name="kick", description="Kick a user from the server")
 @app_commands.describe(member="The member to kick", reason="The reason for kicking the member")
 async def kick(interaction, member: discord.Member, reason: str = None):
