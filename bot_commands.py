@@ -16,10 +16,11 @@ tree = app_commands.CommandTree(client)
 # Game Variables
 questions_list = retrieve_questions('data/questions.json')
 questions = []
+words = []
+scrambled = []
 current_question = 0
 total_questions = 0
 num_correct = 0
-word = ""
 trivia_active = False
 scramble_active = False
 
@@ -62,19 +63,24 @@ async def trivia(interaction, num_questions: int = 5):
 
 
 @tree.command(name="unscramble", description="Unscramble the Word!")
-async def unscramble(interaction):
-    global scramble_active, word
+@app_commands.describe(num_questions="Enter the number of questions you would like to answer")
+async def unscramble(interaction, num_questions: int = 5):
+    global scramble_active, questions, current_question, total_questions, words, scrambled
+    total_questions = num_questions
+    words = [pick_word('data/words.txt') for _ in range(total_questions)]
+    for word in words:
+        scrambled.append(scramble(word))
+    current_question = 0
     scramble_active = True
     await interaction.response.send_message(
         "Welcome to Unscramble the Word! Type !a <your answer> to answer the question or !q to quit.")
-    word = pick_word('data/words.txt')
-    await interaction.followup.send(f'Unscramble: {scramble(word)}')
+    await interaction.followup.send(f'Unscramble: {scrambled[current_question]}')
 
 
 # Used to check user's answer for Trivia and Unscramble
 @client.event
 async def on_message(message) -> None:
-    global current_question, questions, trivia_active, num_correct, scramble_active
+    global current_question, questions, trivia_active, num_correct, scramble_active, words, scrambled
     if message.author == client.user:
         return
 
@@ -99,17 +105,27 @@ async def on_message(message) -> None:
 
     # If the user is playing Unscramble the Word
     if scramble_active:
-        if message.content.startswith('!q'):
-            await message.channel.send('Game exited.')
-            scramble_active = False
-            return
         if message.content.startswith('!a'):
             answer = message.content[len('!a '):]
-            if answer.lower() == word:
+            if answer.lower() == words[current_question]:
+                num_correct += 1
                 await message.channel.send('Correct!')
             else:
-                await message.channel.send(f'Incorrect! The correct answer was: {word}')
-        scramble_active = False
+                await message.channel.send(f'Incorrect! The correct answer was: {words[current_question]}')
+            current_question += 1
+
+            if current_question < len(scrambled):
+                await message.channel.send(f'Unscramble: {scrambled[current_question]}')
+            else:
+                await message.channel.send(
+                    f'All questions answered! Results: {num_correct}/{total_questions} questions correctly answered.')
+                words, scrambled = [], []
+                current_question = 0
+                scramble_active = False
+
+        elif message.content.startswith('!q'):
+            await message.channel.send('Game exited.')
+            scramble_active = False
 
 
 # Moderation Tools
