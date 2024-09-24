@@ -67,7 +67,7 @@ async def trivia(interaction, num_questions: int = 5):
 async def unscramble(interaction, num_questions: int = 5):
     global scramble_active, questions, current_question, total_questions, words, scrambled
     total_questions = num_questions
-    words = [pick_word('data/words.txt') for _ in range(total_questions)]
+    words = [pick_word('../data/words.txt') for _ in range(total_questions)]
     for word in words:
         scrambled.append(scramble(word))
     current_question = 0
@@ -76,7 +76,7 @@ async def unscramble(interaction, num_questions: int = 5):
         "Welcome to Unscramble the Word! Type !a <your answer> to answer the question or !q to quit.")
     await interaction.followup.send(f'Unscramble: {scrambled[current_question]}')
 
-
+    
 # Used to check user's answer for Trivia and Unscramble
 @client.event
 async def on_message(message) -> None:
