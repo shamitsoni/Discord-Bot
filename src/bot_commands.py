@@ -6,7 +6,6 @@ from command.TicTacToe import TicTacToeView
 from command.Trivia import retrieve_questions, pick_question, check_answer
 from command.Unscramble import pick_word, scramble
 
-
 # Bot Setup
 intents = Intents.default()
 intents.message_content = True
@@ -21,8 +20,12 @@ scrambled = []
 current_question = 0
 total_questions = 0
 num_correct = 0
+lives = 5
+answer = ''
+guessed_letters = []
 trivia_active = False
 scramble_active = False
+hangman_active = False
 
 
 # Utility
@@ -58,7 +61,7 @@ async def trivia(interaction, num_questions: int = 5):
     questions = [pick_question(questions_list) for _ in range(total_questions)]
     current_question = 0
     trivia_active = True
-    await interaction.response.send_message('Welcome to Trivia! Type !a <your answer> to answer the question.')
+    await interaction.response.send_message("Welcome to Trivia! Type !a <your answer> to answer the question.")
     await interaction.followup.send(questions[current_question]['question'])
 
 
@@ -67,7 +70,7 @@ async def trivia(interaction, num_questions: int = 5):
 async def unscramble(interaction, num_questions: int = 5):
     global scramble_active, questions, current_question, total_questions, words, scrambled
     total_questions = num_questions
-    words = [pick_word('../data/words.txt') for _ in range(total_questions)]
+    words = [pick_word('data/unscramble-words.txt') for _ in range(total_questions)]
     for word in words:
         scrambled.append(scramble(word))
     current_question = 0
@@ -76,13 +79,38 @@ async def unscramble(interaction, num_questions: int = 5):
         "Welcome to Unscramble the Word! Type !a <your answer> to answer the question or !q to quit.")
     await interaction.followup.send(f'Unscramble: {scrambled[current_question]}')
 
-    
-# Used to check user's answer for Trivia and Unscramble
+
+@tree.command(name='hangman', description='Play Hangman!')
+async def hangman(interaction):
+    global hangman_active, answer
+    hangman_active = True
+    answer = pick_word('data/hangman-words.txt')
+    await interaction.response.send_message(
+        "Welcome to Hangman! Type !g followed by a letter to guess a letter. Guess the word before you run out of lives!")
+    await interaction.followup.send(f'{lives} Lives Remaining | Word: {'-' * len(answer)}')
+
+
+# Used to check user's input against the answer for Trivia, Unscramble, and Hangman
 @client.event
 async def on_message(message) -> None:
-    global current_question, questions, trivia_active, num_correct, scramble_active, words, scrambled
+    global current_question, questions, trivia_active, num_correct, scramble_active, words, scrambled, hangman_active, lives, answer, guessed_letters
     if message.author == client.user:
         return
+
+    # If the user is playing Hangman
+    if hangman_active:
+        if message.content.startswith('!g'):
+            guess = message.content[len('!g '):].lower()
+            guessed_letters.append(guess)
+            if guess not in answer:
+                lives -= 1
+            await message.channel.send(f'{lives} Lives Remaining | Word: {''.join([char if char in guessed_letters else '-' for char in answer])}')
+
+            if lives == 0:
+                await message.channel.send(f'Game Over! You ran out of lives. Answer: {answer}')
+                hangman_active = False
+                guessed_letters = []
+                lives = 5
 
     # If the user is playing Trivia
     if message.content.startswith('!a') and trivia_active:
@@ -121,6 +149,7 @@ async def on_message(message) -> None:
                     f'All questions answered! Results: {num_correct}/{total_questions} questions correctly answered.')
                 words, scrambled = [], []
                 current_question = 0
+                answer = ''
                 scramble_active = False
 
         elif message.content.startswith('!q'):
