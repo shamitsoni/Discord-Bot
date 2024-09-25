@@ -5,6 +5,7 @@ from discord import Intents, Client, app_commands
 from command.TicTacToe import TicTacToeView
 from command.Trivia import retrieve_questions, pick_question, check_answer
 from command.Unscramble import pick_word, scramble
+from command.Hangman import HangmanGame
 
 # Bot Setup
 intents = Intents.default()
@@ -20,12 +21,9 @@ scrambled = []
 current_question = 0
 total_questions = 0
 num_correct = 0
-lives = 5
-answer = ''
-guessed_letters = []
 trivia_active = False
 scramble_active = False
-hangman_active = False
+hangman_game = None
 
 
 # Utility
@@ -82,53 +80,24 @@ async def unscramble(interaction, num_questions: int = 5):
 
 @tree.command(name='hangman', description='Play Hangman!')
 async def hangman(interaction):
-    global hangman_active, answer
-    hangman_active = True
-    answer = pick_word('data/hangman-words.txt')
-    await interaction.response.send_message(
-        "Welcome to Hangman! Type !g followed by a letter to guess a letter or !a followed by your answer to guess the word. Guess the word before you run out of lives!")
-    await interaction.followup.send(f'[{lives} Lives Remaining] | Word: {'-' * len(answer)}')
+    global hangman_game
+    hangman_game = HangmanGame()
+    await hangman_game.start(interaction)
 
 
 # Used to check user's input against the answer for Trivia, Unscramble, and Hangman
 @client.event
 async def on_message(message) -> None:
-    global current_question, questions, trivia_active, num_correct, scramble_active, words, scrambled, hangman_active, lives, answer, guessed_letters
+    global current_question, questions, trivia_active, num_correct, scramble_active, words, scrambled, hangman_game
     if message.author == client.user:
         return
 
     # If the user is playing Hangman
-    if hangman_active:
+    if hangman_game and hangman_game.status:
         if message.content.startswith('!g'):
-            guess = message.content[len('!g '):].lower()
-            if len(guess) != 1:
-                await message.channel.send('Error | Please only guess a singular letter.')
-            else:
-                guessed_letters.append(guess)
-                if guess not in answer:
-                    lives -= 1
-                await message.channel.send(f'[{lives} Lives Remaining] | Word: {''.join([char if char in guessed_letters else '-' for char in answer])}')
-
-            if lives == 0:
-                await message.channel.send(f'Game Over! You ran out of lives. Answer: {answer}')
-                hangman_active = False
-                guessed_letters = []
-                lives = 5
-
-        if message.content.startswith('!a'):
-            guess = message.content[len('!a '):].lower()
-            if guess == answer:
-                await message.channel.send('You win! You guessed the correct word.')
-            else:
-                lives -= 1
-                if lives > 0:
-                    await message.channel.send('Incorrect word.')
-                    await message.channel.send(f'[{lives} Lives Remaining] | Word: {''.join([char if char in guessed_letters else '-' for char in answer])}')
-                else:
-                    await message.channel.send(f'Game Over! You ran out of lives. Answer: {answer}')
-                    hangman_active = False
-                    guessed_letters = []
-                    lives = 5
+            await hangman_game.handle_guess(message)
+        elif message.content.startswith('!a'):
+            await hangman_game.handle_answer(message)
 
     # If the user is playing Trivia
     if message.content.startswith('!a') and trivia_active:
